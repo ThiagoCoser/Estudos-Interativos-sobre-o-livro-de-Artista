@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O Livro de Areia - Grids Editoriais</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri&family=Cinzel:wght@400;700&display=swap');
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0a0908;
+            color: #2c2519;
+            font-family: 'Cinzel', serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        #book-cover {
+            position: absolute;
+            z-index: 10;
+            width: 400px;
+            height: 550px;
+            transition: opacity 2.5s ease, transform 3s cubic-bezier(0.25, 1, 0.5, 1);
+            background-image: url('capa.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: 5px 20px 20px 5px;
+            box-shadow: 15px 15px 30px rgba(0, 0, 0, 0.8), inset 5px 0 20px rgba(0, 0, 0, 0.5);
+            border-left: 15px solid #2a1f18;
+        }
+
+        #codex-container {
+            position: relative;
+            width: 90vw;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            perspective: 2500px;
+            transition: opacity 3s ease 1.5s;
+        }
+
+        body.is-open #book-cover {
+            opacity: 0;
+            transform: scale(1.1) rotateY(-110deg);
+        }
+
+        body.is-open #codex-container {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Página Base do Códice */
+        #codex-page {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: #e3dec6;
+            border: 1px solid rgba(44, 37, 25, 0.2);
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.1), 0 10px 30px rgba(0, 0, 0, 0.6);
+            padding: 3rem;
+            box-sizing: border-box;
+            transform-style: preserve-3d;
+            transform-origin: center;
+            overflow: hidden;
+        }
+
+        .turning-page {
+            animation: turnPageAnim 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes turnPageAnim {
+            0% {
+                transform: rotateY(0deg) scale(1);
+                opacity: 1;
+                filter: blur(0px);
+            }
+
+            45% {
+                transform: rotateY(-90deg) scale(0.95);
+                opacity: 0;
+                filter: blur(10px);
+            }
+
+            55% {
+                transform: rotateY(90deg) scale(0.95);
+                opacity: 0;
+                filter: blur(10px);
+            }
+
+            100% {
+                transform: rotateY(0deg) scale(1);
+                opacity: 1;
+                filter: blur(0px);
+            }
+        }
+
+        /* ================= TEMPLATES DE LAYOUT (Inspirados na Referência) ================= */
+
+        /* TEMPLATE A: O Monumental (Título grande à esquerda, colunas de texto à direita) */
+        .template-monumental {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .template-monumental .col-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 1px solid rgba(44, 37, 25, 0.15);
+            padding-right: 2rem;
+        }
+
+        .template-monumental .col-right {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            font-family: 'Amiri', serif;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            text-align: justify;
+        }
+
+        /* TEMPLATE B: O Jornalístico / Colunado (Múltiplas colunas com cabeçalho de capítulo) */
+        .template-colunas {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .template-colunas .chapter-header {
+            border-bottom: 2px solid #2c2519;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .template-colunas .columns-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 2rem;
+            font-family: 'Amiri', serif;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            text-align: justify;
+        }
+
+        /* TEMPLATE C: O Assimétrico (Estilo Códice Antigo / Margens Livres) */
+        .template-assimetrico {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 3rem;
+            align-content: center;
+            height: 100%;
+        }
+
+        .template-assimetrico .main-block {
+            font-family: 'Amiri', serif;
+            font-size: 1.2rem;
+            line-height: 1.8;
+            text-align: justify;
+        }
+
+        .template-assimetrico .side-block {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            opacity: 0.8;
+            border-left: 1px solid rgba(44, 37, 25, 0.15);
+            padding-left: 1.5rem;
+        }
+
+        /* Elementos tipográficos de apoio */
+        .chapter-tag {
+            font-size: 1.1rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .chapter-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-top: 0.5rem;
+            color: #1a1610;
+        }
+
+        /* O Canvas interativo da webcam é embutido dinamicamente no grid ativo */
+        #sand-canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: url(#sand-distortion) contrast(1.1) sepia(0.5) brightness(0.9) blur(0.5px);
+            border-radius: 6px;
+        }
+
+        #webcam-video {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <svg style="display: none;">
+        <filter id="sand-distortion">
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" id="turbulence" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G"
+                id="displacement" />
+        </filter>
+    </svg>
+
+    <div id="book-cover"></div>
+
+    <div id="codex-container">
+        <!-- O conteúdo interno injetado dinamicamente pelos templates -->
+        <div id="codex-page"></div>
+    </div>
+
+    <video id="webcam-video" autoplay playsinline></video>
+
+    <script>
+        const codexPage = document.getElementById('codex-page');
+        const video = document.getElementById('webcam-video');
+
+        let width, height;
+        let sandCharacters = "مِنْهُأَنْيَكُونَأَوْلَكِنَّهُمَكَانَ";
+        let timeOffset = 0;
+
+        const step = 14;
+        let chaosFactor = 1.5;
+        let isTurning = false;
+
+        let webImage = new Image();
+        webImage.crossOrigin = "Anonymous";
+        let isImageLoaded = false;
+        let canvas, ctx;
+
+        const bibliotecaBorgiana = [
+            "O compêndio é monstruoso e secreto. Nenhuma página é a primeira; nenhuma é a última, pois o livro não tem princípio nem fim, multiplicando-se nas sombras da biblioteca.",
+            "Esta mancha de tinta nas margens oculta o mapa botânico de um império que já desabou na poeira. As raízes e as estrelas confundem-se nos diagramas perdidos.",
+            "O espelho e a cópula são abomináveis, porque multiplicam o número e o reflexo visível dos homens no abismo de areia onde as eras se desmancham em silêncio.",
+            "Vi a alta noite que não alenta a aurora, vi labirintos intricados na poeira e o centro geométrico de todas as coisas que os deuses esqueceram de criar.",
+            "Ninguém é a pátria. Nem o cavaleiro que cruza a fronte oculta, nem a tumba de pedra cinzenta sob a lua fria que ilumina os manuscritos ilegíveis.",
+            "O tempo é a substância de que sou feito. O tempo é um rio que me arrebasta, mas eu sou o rio que se perde nas páginas sem fim deste códice.",
+            "Creio que os sóis e as constelações giram no vazio à procura de um nome perdido na memória dos homens e na textura áspera do pergaminho antigo.",
+            "De todas as obras do homem, nenhuma me pareceu tão vertiginosa quanto a invenção de bibliotecas onde os livros sangram areia e esquecimento.",
+            "Encontrei o exemplar no fundo de uma gaveta em Praga; suas páginas exalavam um odor de deserto, ervas secas e eras milenares inalcançáveis.",
+            "Tudo foi escrito pelos séculos, e nós somos apenas os ecos passageiros de uma voz que nunca cala entre as margens ilustradas de símbolos impossíveis."
+        ];
+
+        function resize() {
+            if(!canvas) return;
+            width = canvas.clientWidth;
+            height = canvas.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+
+        document.body.addEventListener('click', () => {
+            if (!document.body.classList.contains('is-open')) {
+                document.body.classList.add('is-open');
+                initCamera();
+                updatePageLayout();
+                setTimeout(renderSand, 2500);
+                return;
+            }
+
+            if (isTurning) return;
+            turnPage();
+        });
+
+        function turnPage() {
+            isTurning = true;
+            codexPage.classList.add('turning-page');
+
+            chaosFactor = 15;
+            document.getElementById('turbulence').setAttribute('baseFrequency', '0.06');
+            document.getElementById('displacement').setAttribute('scale', '15');
+
+            setTimeout(() => {
+                updatePageLayout();
+            }, 1500);
+
+            setTimeout(() => {
+                codexPage.classList.remove('turning-page');
+                chaosFactor = 1.5;
+                document.getElementById('turbulence').setAttribute('baseFrequency', '0.04');
+                document.getElementById('displacement').setAttribute('scale', '8');
+                isTurning = false;
+            }, 3000);
+        }
+
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Erro na câmera: ", err);
+            }
+        }
+
+        // Sorteia e aplica um dos 3 Templates Editoriais e injeta o Canvas na estrutura
+        function updatePageLayout() {
+            const fragmento = bibliotecaBorgiana[Math.floor(Math.random() * bibliotecaBorgiana.length)];
+            sandCharacters = fragmento.replace(/\s+/g, '').toUpperCase() + "مِنْهُأَنْيَكُونَ∞ℵ";
+
+            const numeroCapitulo = "#0" + Math.floor(Math.random() * 4 + 1);
+
+            // Sorteia o template (0, 1 ou 2)
+            const templateTipo = Math.floor(Math.random() * 3);
+
+            if (templateTipo === 0) {
+                // TEMPLATE A: Monumental
+                codexPage.className = "template-monumental";
+                codexPage.innerHTML = `
+                    <div class="col-left">
+                        <span class="chapter-tag">${numeroCapitulo}</span>
+                        <div class="chapter-title">LIVRO DE AREIA</div>
+                        <p style="margin-top: 1.5rem; font-size: 0.9rem; opacity: 0.7;">[ Fragmento extraído do indizível ]</p>
+                    </div>
+                    <div class="col-right">
+                        <div>${fragmento.substring(0, Math.floor(fragmento.length / 2))}</div>
+                        <div id="canvas-container" style="width:100%; height:100%; min-height:200px;"></div>
+                    </div>
+                `;
+            } else if (templateTipo === 1) {
+                // TEMPLATE B: Colunado / Jornalístico
+                codexPage.className = "template-colunas";
+                codexPage.innerHTML = `
+                    <div class="chapter-header">
+                        <span class="chapter-tag">${numeroCapitulo} - CÓDICE INFINITO</span>
+                        <span style="font-size: 0.85rem; letter-spacing: 1px;">BORGES & VOYNICH</span>
+                    </div>
+                    <div class="columns-wrapper">
+                        <div>${fragmento.substring(0, 60)}</div>
+                        <div id="canvas-container" style="width:100%; height:100%; min-height:200px;"></div>
+                        <div>${fragmento.substring(60)}</div>
+                    </div>
+                `;
+            } else {
+                // TEMPLATE C: Assimétrico
+                codexPage.className = "template-assimetrico";
+                codexPage.innerHTML = `
+                    <div class="main-block">
+                        <span class="chapter-tag">${numeroCapitulo}</span>
+                        <div style="margin: 1rem 0;">${fragmento}</div>
+                        <div id="canvas-container" style="width:100%; height:250px; margin-top: 1rem;"></div>
+                    </div>
+                    <div class="side-block">
+                        Margarita · ℞ · Index infinitus · Sine initio et sine fine · A
+                    </div>
+                `;
+            }
+
+            // Recria e reposiciona o elemento Canvas dentro do slot gerado pelo template ativo
+            canvas = document.createElement('canvas');
+            canvas.id = "sand-canvas";
+            ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+            const slot = document.getElementById('canvas-container');
+            if(slot) {
+                slot.appendChild(canvas);
+            }
+
+            resize();
+
+            // Atualiza a imagem de fundo de forma sutil
+            isImageLoaded = false;
+            webImage.src = `https://picsum.photos/${Math.floor(width || 400)}/${Math.floor(height || 400)}?random=${Date.now()}&grayscale`;
+            webImage.onload = () => {
+                isImageLoaded = true;
+            };
+        }
+
+        function renderSand() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA && canvas && ctx) {
+                ctx.clearRect(0, 0, width, height);
+
+                if (isImageLoaded) {
+                    ctx.globalAlpha = 0.2;
+                    ctx.globalCompositeOperation = 'multiply';
+                    ctx.drawImage(webImage, 0, 0, width, height);
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.globalAlpha = 1.0;
+                }
+
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                tempCtx.translate(width, 0);
+                tempCtx.scale(-1, 1);
+                tempCtx.drawImage(video, 0, 0, width, height);
+
+                const imageData = tempCtx.getImageData(0, 0, width, height);
+                const pixels = imageData.data;
+
+                ctx.font = "14px Amiri";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+
+                timeOffset += 0.05;
+
+                for (let y = 0; y < height; y += step) {
+                    for (let x = 0; x < width; x += step) {
+                        const index = (y * width + x) * 4;
+                        const r = pixels[index];
+                        const g = pixels[index + 1];
+                        const b = pixels[index + 2];
+
+                        const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+
+                        if (brightness < 180) {
+                            const charIndex = Math.floor((x + y + timeOffset * 10) % sandCharacters.length);
+                            const character = sandCharacters[charIndex];
+
+                            const noiseX = Math.sin(y * 0.1 + timeOffset) * chaosFactor;
+                            const noiseY = Math.cos(x * 0.1 + timeOffset) * chaosFactor;
+
+                            const alpha = 1 - (brightness / 180);
+                            ctx.fillStyle = `rgba(30, 25, 15, ${alpha + 0.3})`;
+
+                            ctx.fillText(character, x + noiseX, y + noiseY);
+                        }
+                    }
+                }
+            }
+            requestAnimationFrame(renderSand);
+        }
+    </script>
+</body>
+
+</html>

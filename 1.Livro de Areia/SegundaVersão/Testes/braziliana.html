@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O Livro de Areia - Biblioteca Infinita</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri&family=Cinzel:wght@400;700&display=swap');
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0a0908;
+            color: #2c2519;
+            font-family: 'Cinzel', serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        #book-cover {
+            position: absolute;
+            z-index: 10;
+            width: 400px;
+            height: 550px;
+            background-image: url('capa.png');
+            background-size: 102.5% 102.5%;
+            background-position: center;
+            border-radius: 5px 20px 20px 5px;
+            box-shadow: 15px 15px 30px rgba(0, 0, 0, 0.8), inset 5px 0 20px rgba(0, 0, 0, 0.5);
+            transition: transform 2s cubic-bezier(0.4, 0, 0.2, 1), opacity 2s ease, filter 2s ease;
+        }
+
+        body.is-dissolving #book-cover {
+            transform: scale(1.1) rotate(3deg) translateY(-20px);
+            opacity: 0;
+            filter: url(#sand-dissolve) blur(10px) contrast(150%);
+            pointer-events: none;
+        }
+
+        #codex-container {
+            position: relative;
+            width: 90vw;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            perspective: 2500px;
+            transition: opacity 2s ease;
+        }
+
+        body.is-open #codex-container {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #codex-page {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: #e3dec6;
+            border: 1px solid rgba(44, 37, 25, 0.2);
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.1), 0 10px 30px rgba(0, 0, 0, 0.6);
+            display: grid;
+            grid-template-columns: 1.5fr 2fr 1.5fr;
+            padding: 3rem;
+            gap: 2rem;
+            box-sizing: border-box;
+            transform-style: preserve-3d;
+            transform-origin: center;
+            align-items: center;
+        }
+
+        .turning-page {
+            animation: turnPageAnim 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes turnPageAnim {
+            0% {
+                transform: rotateY(0deg) scale(1);
+                opacity: 1;
+                filter: blur(0px);
+            }
+
+            45% {
+                transform: rotateY(-90deg) scale(0.95);
+                opacity: 0;
+                filter: blur(10px);
+            }
+
+            55% {
+                transform: rotateY(90deg) scale(0.95);
+                opacity: 0;
+                filter: blur(10px);
+            }
+
+            100% {
+                transform: rotateY(0deg) scale(1);
+                opacity: 1;
+                filter: blur(0px);
+            }
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            height: 85%;
+            gap: 1.5rem;
+        }
+
+        .block-standard {
+            font-family: 'Amiri', serif;
+            font-size: 1rem;
+            line-height: 1.7;
+            text-align: justify;
+            text-justify: inter-word;
+            padding: 1.5rem;
+            background: rgba(44, 37, 25, 0.04);
+            border-radius: 4px;
+            border-left: 3px solid rgba(44, 37, 25, 0.3);
+            overflow: hidden;
+            flex-grow: 1;
+        }
+
+        .block-vertical-rl {
+            font-family: 'Amiri', serif;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            text-align: justify;
+            background: rgba(44, 37, 25, 0.02);
+            padding: 1rem;
+            border-radius: 3px;
+            border-top: 3px solid rgba(44, 37, 25, 0.3);
+            overflow: hidden;
+            flex-grow: 1;
+            max-height: 65%;
+        }
+
+        .block-diagonal-right {
+            font-family: 'Amiri', serif;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            text-align: left;
+            background: rgba(44, 37, 25, 0.05);
+            padding: 1rem;
+            border-radius: 2px;
+            transform: rotate(-2deg);
+            border-left: 2px solid rgba(44, 37, 25, 0.4);
+            overflow: hidden;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .block-diagonal-left {
+            font-family: 'Amiri', serif;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            text-align: right;
+            background: rgba(44, 37, 25, 0.03);
+            padding: 1rem;
+            border-radius: 2px;
+            transform: rotate(2deg);
+            border-right: 2px solid rgba(44, 37, 25, 0.4);
+            overflow: hidden;
+        }
+
+        .block-heavy {
+            font-family: 'Amiri', serif;
+            font-weight: bold;
+            font-size: 1.15rem;
+            line-height: 1.5;
+            text-align: justify;
+            border-bottom: 2px solid rgba(44, 37, 25, 0.5);
+            padding-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .block-minimal {
+            font-family: 'Cinzel', serif;
+            font-size: 0.75rem;
+            line-height: 1.6;
+            text-align: right;
+            opacity: 0.7;
+            overflow: hidden;
+        }
+
+        .glyph-large {
+            font-size: 1.4rem;
+            font-weight: bold;
+            line-height: 0.7;
+        }
+
+        .glyph-rotated {
+            display: inline-block;
+            transform: rotate(-15deg);
+        }
+
+        .glyph-dropcap {
+            float: left;
+            font-size: 3.5rem;
+            line-height: 0.6;
+            padding-right: 8px;
+            font-family: 'Cinzel', serif;
+        }
+
+        #sand-canvas {
+            width: 100%;
+            height: 85%;
+            object-fit: cover;
+            filter: url(#sand-distortion) contrast(1.1) sepia(0.5) brightness(0.9) blur(0.5px);
+            border-radius: 8px;
+        }
+
+        #webcam-video {
+            display: none;
+        }
+
+        #info-trigger {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 12;
+            color: #8c7853;
+            text-decoration: none;
+            font-family: 'Cinzel', serif;
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            opacity: 0.6;
+            transition: opacity 0.3s, color 0.3s;
+            cursor: pointer;
+            padding: 8px 16px;
+            border: 1px solid rgba(140, 120, 83, 0.2);
+            border-radius: 3px;
+            background: rgba(10, 9, 8, 0.7);
+        }
+
+        #info-trigger:hover {
+            opacity: 1;
+            color: #e3dec6;
+            border-color: rgba(227, 222, 198, 0.4);
+        }
+
+        body.is-dissolving #info-trigger,
+        body.is-open #info-trigger {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease;
+        }
+
+        #info-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 9, 8, 0.93);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        #info-modal.is-active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #info-content {
+            background: #151312;
+            border: 1px solid rgba(140, 120, 83, 0.25);
+            color: #e3dec6;
+            max-width: 600px;
+            width: 85%;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 2.5rem;
+            border-radius: 6px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+            font-family: 'Amiri', serif;
+            font-size: 1rem;
+            line-height: 1.6;
+            position: relative;
+            cursor: default;
+        }
+
+        #info-content h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.25rem;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            color: #8c7853;
+            text-align: center;
+            border-bottom: 1px solid rgba(140, 120, 83, 0.2);
+            padding-bottom: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+
+        #info-content h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            color: #8c7853;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        #info-content p {
+            text-align: justify;
+            margin-bottom: 1rem;
+            opacity: 0.95;
+        }
+
+        #info-content ul {
+            margin-bottom: 1rem;
+            padding-left: 1.2rem;
+        }
+
+        #info-content li {
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+
+        #info-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #8c7853;
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: color 0.3s;
+            line-height: 1;
+        }
+
+        #info-close:hover {
+            color: #e3dec6;
+        }
+    </style>
+</head>
+
+<body>
+
+    <svg style="display: none;">
+        <filter id="sand-dissolve">
+            <feTurbulence type="fractalNoise" baseFrequency="0.12" numOctaves="4" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="45" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id="sand-distortion">
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" id="turbulence" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G"
+                id="displacement" />
+        </filter>
+    </svg>
+
+    <div id="book-cover"></div>
+
+    <a id="info-trigger">Informações do Projeto</a>
+
+    <div id="info-modal">
+        <div id="info-content">
+            <button id="info-close">&times;</button>
+            <h2>O Livro Infinito</h2>
+
+            <h3>Sobre o projeto</h3>
+            <p>Esta obra foi realizada para a disciplina V204 - Laboratório IV, oferecida no instituto de Artes da
+                Universidade Estadual de Campinas, no segundo semestre de 2026, com o nome, Impressões gráficas:
+                considerações sobre
+                o tempo e a memória na produção de livros de artista e livros-objetos, ministrada pela docente Luise
+                Weiss com a
+                professora convidada Fabiana Grassano.</p>
+
+            <h3>Obra</h3>
+
+            <p>
+                Este projeto é uma instalação artística interativa inspirada no conto de Jorge Luis Borges, O Livro de
+                Areia, de 1975. Na ficção de Borges, o protagonista adquire um livro sagrado sem início nem fim, cujas
+                páginas de areia
+                brotam incessantemente, tornando impossível retornar a uma página já lida. O livro funciona como uma
+                metáfora
+                sobre o infinito, a memória humana e o acaso.
+
+                A experiência une presença física e fluxos gerativos digitais em tempo real, gerando páginas únicas a
+                cada visita. Existe uma espécie de retrato de areia, no qual a câmera do usuário capta seu rosto em
+                tempo real e
+                aplica um processamento na imagem, convertendo os níveis de brilho em partículas de caracteres que
+                vibram como
+                grãos de areia.
+
+                Textos generativos são criados em blocos a cada virar de página, trechos literários de livros aleatórios
+                são buscados em tempo real, dinamicamente e sem repetição.
+
+                Imagens do Acervo de Arte Brasileira (obras de Almeida Júnior, Victor Meirelles, Pedro Américo, Eliseu
+                Visconti, Candido Portinari) são consultadas via API.
+            </p>
+
+            <h3>APIs Utilizadas</h3>
+            <p>
+                API: Google Books API & Open Library API<br>
+                API: Acervo de Arte Brasileira (Wikimedia Commons API / Artistas e Pinturas do Brasil)
+            </p>
+
+            <h3>Referências</h3>
+            <p>BORGES, Jorge Luis. O livro de areia. Tradução de Davi Arrigucci Jr. São Paulo: Companhia das Letras,
+                2009.</p>
+            <p>CARRIÓN, Ulises. A nova arte de fazer livros. Tradução de Amir Brito Cadôr. Coordenação editorial de
+                Fernando Pedro da Silva e Marília Andrés Ribeiro. Belo Horizonte: C/Arte, 2011.</p>
+            <p>VALE, Paulo Pires do. Tarefas infinitas: quando a arte e o livro se ilimitam. Lisboa: Fundação Calouste
+                Gulbenkian, 2012.</p>
+        </div>
+    </div>
+
+    <div id="codex-container">
+        <div id="codex-page">
+            <div class="sidebar" id="left-sidebar">
+                <div class="block-standard"><span class='glyph-dropcap'>...</span>Abrindo os portais da biblioteca
+                    infinita...</div>
+            </div>
+
+            <div
+                style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                <canvas id="sand-canvas"></canvas>
+            </div>
+
+            <div class="sidebar" id="right-sidebar"></div>
+        </div>
+    </div>
+
+    <video id="webcam-video" autoplay playsinline></video>
+
+    <script>
+        const bookCover = document.getElementById('book-cover');
+        const codexPage = document.getElementById('codex-page');
+        const video = document.getElementById('webcam-video');
+        const canvas = document.getElementById('sand-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        const leftSidebar = document.getElementById('left-sidebar');
+        const rightSidebar = document.getElementById('right-sidebar');
+
+        let width, height;
+        let sandCharacters = "O LIVRO DE AREIA SE DESDOBRA. ";
+        let timeOffset = 0;
+
+        const step = 14;
+        let isTurning = false;
+        let isDissolving = false;
+
+        let webImage = new Image();
+        webImage.crossOrigin = "Anonymous";
+        let isImageLoaded = false;
+
+        const usedExcerpts = new Set();
+        const usedImageIds = new Set();
+
+        const sementesDeBusca = [
+            "biologia", "viagem", "arquitetura", "cozinha", "astronomia", "floresta",
+            "pintura", "ferrovia", "oceano", "história", "música", "estrada", "geologia",
+            "botânica", "química", "cidade", "passagem", "inverno", "jardim", "máquina"
+        ];
+
+        const termosArteBrasileira = [
+            "Almeida Júnior", "Victor Meirelles", "Pedro Américo",
+            "Eliseu Visconti", "Belmiro de Almeida", "Giovanni Battista Castagneto",
+            "Anita Malfatti", "Candido Portinari", "Rodolfo Amoedo", "Tarsila do Amaral"
+        ];
+
+        const acervoArteBrasileiraBackup = [
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Almeida_J%C3%BAnior_-_O_Violeiro%2C_1899.jpg/800px-Almeida_J%C3%BAnior_-_O_Violeiro%2C_1899.jpg",
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Almeida_J%C3%BAnior_-_Caipira_picando_fumo%2C_1893.jpg/800px-Almeida_J%C3%BAnior_-_Caipira_picando_fumo%2C_1893.jpg",
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Primeira_missa_no_brasil.jpg/800px-Primeira_missa_no_brasil.jpg",
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Independ%C3%AAncia_ou_Morte.jpg/800px-Independ%C3%AAncia_ou_Morte.jpg",
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Eliseu_Visconti_-_Giovent%C3%B9_%28A_juventude%29.jpg/800px-Eliseu_Visconti_-_Giovent%C3%B9_%28A_juventude%29.jpg"
+        ];
+
+        // Função auxiliar para evitar que chamadas à API travem a página se demorarem
+        async function fetchWithTimeout(resource, timeout = 3000) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            try {
+                const response = await fetch(resource, { signal: controller.signal });
+                clearTimeout(id);
+                return response;
+            } catch (error) {
+                clearTimeout(id);
+                throw error;
+            }
+        }
+
+        function resize() {
+            if (!canvas.parentElement) return;
+            width = canvas.parentElement.clientWidth;
+            height = canvas.parentElement.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        document.addEventListener('click', () => {
+            if (!document.body.classList.contains('is-open')) {
+                if (!isDissolving) {
+                    isDissolving = true;
+                    document.body.classList.add('is-dissolving');
+
+                    setTimeout(() => {
+                        bookCover.style.display = 'none';
+                        document.body.classList.add('is-open');
+                        initCamera();
+                        updatePageContent();
+                        renderSand();
+                        isDissolving = false;
+                    }, 1800);
+                }
+                return;
+            }
+
+            if (isTurning) return;
+            turnPage();
+        });
+
+        const infoTrigger = document.getElementById('info-trigger');
+        const infoModal = document.getElementById('info-modal');
+        const infoClose = document.getElementById('info-close');
+
+        infoTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            infoModal.classList.add('is-active');
+        });
+
+        infoClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            infoModal.classList.remove('is-active');
+        });
+
+        infoModal.addEventListener('click', (e) => {
+            if (e.target === infoModal) {
+                infoModal.classList.remove('is-active');
+            }
+            e.stopPropagation();
+        });
+
+        function turnPage() {
+            isTurning = true;
+            codexPage.classList.add('turning-page');
+
+            setTimeout(() => {
+                updatePageContent();
+            }, 1500);
+
+            setTimeout(() => {
+                codexPage.classList.remove('turning-page');
+                isTurning = false;
+            }, 3000);
+        }
+
+        async function initCamera() {
+            try {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    video.srcObject = stream;
+                }
+            } catch (err) {
+                console.warn("Câmara indisponível ou permissão negada:", err);
+            }
+        }
+
+        function generateTruncatedTypography(text, useDropCap = false) {
+            let result = '';
+            if (useDropCap && text.length > 0) {
+                result += `<span class="glyph-dropcap">${text[0]}</span>`;
+                text = text.substring(1);
+            }
+            return result + text;
+        }
+
+        const trechosClassicos = [
+            "A manhã estava fria e o vento sobrava forte do norte, trazendo o cheiro das montanhas distantes cobertas de neve.",
+            "Ela serviu o café em duas xícaras de porcelana azul e sentou-se perto da janela, observando o movimento da rua.",
+            "O trem partiu pontualmente às sete horas, deixando para trás uma nuvem de fumaça cinzenta na plataforma vazia da estação.",
+            "Nas profundezas do oceano, a luz do sol nunca chega, e as criaturas marinhas dependem de sua própria luminescência.",
+            "Eles caminharam em silêncio pelas ruas estreitas da cidade velha, ouvindo apenas o som ritmado de seus próprios passos."
+        ];
+
+        async function fetchInfiniteLibrary() {
+            let allExcerpts = [];
+            const termo = sementesDeBusca[Math.floor(Math.random() * sementesDeBusca.length)];
+
+            try {
+                const res = await fetchWithTimeout(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(termo)}&maxResults=5&langRestrict=pt`, 2500);
+                const data = await res.json();
+                if (data.items) {
+                    data.items.forEach(item => {
+                        const snippet = item.searchInfo?.textSnippet || item.volumeInfo?.description || '';
+                        if (snippet.length > 50) {
+                            allExcerpts.push(snippet.replace(/(<([^>]+)>)/gi, ""));
+                        }
+                    });
+                }
+            } catch (err) {
+                console.warn("Google Books falhou ou expirou tempo limite, a usar acervo local:", err);
+            }
+
+            allExcerpts = allExcerpts.concat(trechosClassicos);
+            allExcerpts.sort(() => Math.random() - 0.5);
+            return allExcerpts.slice(0, 6);
+        }
+
+        function applyLayoutTemplate(trechos) {
+            leftSidebar.innerHTML = `<div class="block-standard">${generateTruncatedTypography(trechos[0] || trechosClassicos[0], true)}</div>`;
+            rightSidebar.innerHTML = `<div class="block-vertical-rl">${generateTruncatedTypography(trechos[1] || trechosClassicos[1], false)}</div>`;
+            if (trechos[2]) {
+                sandCharacters = trechos[2].toUpperCase() + " • ";
+            }
+        }
+
+        async function fetchArteBrasileiraImage() {
+            const termo = termosArteBrasileira[Math.floor(Math.random() * termosArteBrasileira.length)];
+
+            try {
+                const endpoint = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(termo)}&gsrnamespace=6&gsrlimit=15&prop=imageinfo&iiprop=url&iiurlwidth=800&format=json&origin=*`;
+                const res = await fetchWithTimeout(endpoint, 2500);
+                const data = await res.json();
+
+                if (data.query && data.query.pages) {
+                    const pages = Object.values(data.query.pages);
+                    const validImages = pages.filter(p => p.imageinfo && p.imageinfo[0]);
+                    if (validImages.length > 0) {
+                        const chosen = validImages[Math.floor(Math.random() * validImages.length)];
+                        return chosen.imageinfo[0].thumburl || chosen.imageinfo[0].url;
+                    }
+                }
+            } catch (err) {
+                console.warn("Wikimedia API falhou ou expirou tempo limite, a usar imagem de reserva:", err);
+            }
+
+            return acervoArteBrasileiraBackup[Math.floor(Math.random() * acervoArteBrasileiraBackup.length)];
+        }
+
+        async function updatePageContent() {
+            leftSidebar.innerHTML = "<div class='block-standard'><span class='glyph-dropcap'>...</span>Consultando os registros infinitos...</div>";
+            rightSidebar.innerHTML = "";
+
+            try {
+                const [trechos, artUrl] = await Promise.all([
+                    fetchInfiniteLibrary(),
+                    fetchArteBrasileiraImage()
+                ]);
+
+                applyLayoutTemplate(trechos);
+
+                isImageLoaded = false;
+                webImage = new Image();
+                webImage.crossOrigin = "Anonymous";
+                webImage.src = artUrl;
+                webImage.onload = () => { isImageLoaded = true; };
+                webImage.onerror = () => {
+                    webImage.src = acervoArteBrasileiraBackup[0];
+                    webImage.onload = () => { isImageLoaded = true; };
+                };
+            } catch (e) {
+                console.error("Erro ao atualizar conteúdo:", e);
+                applyLayoutTemplate(trechosClassicos);
+            }
+        }
+
+        function renderSand() {
+            ctx.clearRect(0, 0, width, height);
+
+            if (isImageLoaded) {
+                ctx.save();
+                ctx.globalAlpha = 0.35;
+                ctx.globalCompositeOperation = 'multiply';
+                ctx.drawImage(webImage, 0, 0, width, height);
+                ctx.restore();
+            }
+
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+
+                tempCtx.save();
+                tempCtx.translate(width, 0);
+                tempCtx.scale(-1, 1);
+                tempCtx.drawImage(video, 0, 0, width, height);
+                tempCtx.restore();
+
+                const imageData = tempCtx.getImageData(0, 0, width, height);
+                const pixels = imageData.data;
+
+                ctx.font = "14px Amiri";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+
+                timeOffset += 0.03;
+                const cols = Math.floor(width / step);
+
+                for (let y = 0; y < height; y += step) {
+                    for (let x = 0; x < width; x += step) {
+                        const index = (y * width + x) * 4;
+                        const r = pixels[index];
+                        const g = pixels[index + 1];
+                        const b = pixels[index + 2];
+
+                        const brightness = r * 0.299 + g * 0.587 + b * 0.114;
+
+                        const low = 45;
+                        const high = 145;
+                        let personMask = (brightness - low) / (high - low);
+                        personMask = Math.max(0, Math.min(1, personMask));
+
+                        if (personMask > 0.18) {
+                            const row = Math.floor(y / step);
+                            const col = Math.floor(x / step);
+                            const linearGridIndex = Math.floor(row * cols + col);
+                            const charIndex = linearGridIndex % sandCharacters.length;
+                            const character = sandCharacters[charIndex];
+
+                            const hoverX = Math.sin(timeOffset * 1.2 + y * 0.1) * 1.5;
+                            const hoverY = Math.cos(timeOffset * 1.5 + x * 0.1) * 1.5;
+
+                            const alpha = Math.min(0.95, 0.25 + personMask * 0.75);
+                            ctx.fillStyle = `rgba(44, 37, 25, ${alpha})`;
+
+                            ctx.fillText(character, x + hoverX, y + hoverY);
+                        }
+                    }
+                }
+            }
+
+            requestAnimationFrame(renderSand);
+        }
+    </script>
+</body>
+
+</html>

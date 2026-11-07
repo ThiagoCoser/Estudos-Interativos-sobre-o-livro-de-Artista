@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O Livro de Areia</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri&family=Cinzel:wght@400;700&display=swap');
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #e3dec6; /* Tom de papel antigo */
+            color: #2c2519;
+            font-family: 'Cinzel', serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Estrutura da Página do Códice */
+        #codex-page {
+            position: relative;
+            width: 90vw;
+            height: 90vh;
+            border: 2px solid rgba(44, 37, 25, 0.1);
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.05);
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        /* Textos flutuantes nas margens (Estilo Voynich) */
+        .marginalia {
+            font-family: 'Amiri', serif;
+            font-size: 1.2rem;
+            line-height: 1.8;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            opacity: 0.6;
+            word-wrap: break-word;
+            overflow: hidden;
+            text-align: justify;
+        }
+
+        /* O Canvas onde a poética acontece */
+        #sand-canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: contrast(1.2) sepia(0.3);
+        }
+
+        /* Ocultar o vídeo original */
+        #webcam-video {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="codex-page">
+        <div class="marginalia" id="margin-left"></div>
+        <canvas id="sand-canvas"></canvas>
+        <div class="marginalia" id="margin-right"></div>
+    </div>
+
+    <video id="webcam-video" autoplay playsinline></video>
+
+    <script>
+        const video = document.getElementById('webcam-video');
+        const canvas = document.getElementById('sand-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        let width, height;
+        let sandCharacters = "مِنْهُأَنْيَكُونَأَوْلَكِنَّهُمَكَانَ1234567890OINFINITO";
+        
+        // Configurações da simulação
+        const step = 12; // Densidade dos caracteres (menor = mais denso)
+        let timeOffset = 0;
+
+        function resize() {
+            width = canvas.parentElement.clientWidth / 2; 
+            height = canvas.parentElement.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // 1. Inicializa a Webcam
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Erro ao acessar a câmera: ", err);
+            }
+        }
+
+        // 2. Busca dados da internet em tempo real (A Areia)
+        // Usamos uma API pública genérica para alimentar o caos textual
+        async function fetchLiveDust() {
+            try {
+                const response = await fetch('https://jsonplaceholder.typicode.com/posts/' + Math.floor(Math.random() * 100 + 1));
+                const data = await response.json();
+                // Mistura os dados da API com caracteres árabes
+                let rawText = data.body.replace(/\s+/g, '').toUpperCase();
+                sandCharacters = rawText + "مِنْهُأَنْيَكُونَ";
+                
+                // Atualiza as margens com os dados recebidos
+                document.getElementById('margin-left').innerText = sandCharacters.substring(0, 150);
+                document.getElementById('margin-right').innerText = sandCharacters.substring(150, 300);
+            } catch (err) {
+                console.log("Mantendo areia padrão.");
+            }
+        }
+
+        // Atualiza os dados a cada 3 segundos
+        setInterval(fetchLiveDust, 3000);
+
+        // 3. O Motor de Renderização (Transformando pixels em texto)
+        function renderSand() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                
+                // Desenha o frame atual em um canvas interno invisível
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Inverte horizontalmente para efeito de espelho
+                tempCtx.translate(width, 0);
+                tempCtx.scale(-1, 1);
+                tempCtx.drawImage(video, 0, 0, width, height);
+
+                const imageData = tempCtx.getImageData(0, 0, width, height);
+                const pixels = imageData.data;
+
+                // Limpa o canvas principal
+                ctx.clearRect(0, 0, width, height);
+                ctx.font = "10px Amiri";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+
+                timeOffset += 0.05;
+
+                // Varre a imagem com base no "step"
+                for (let y = 0; y < height; y += step) {
+                    for (let x = 0; x < width; x += step) {
+                        const index = (y * width + x) * 4;
+                        const r = pixels[index];
+                        const g = pixels[index + 1];
+                        const b = pixels[index + 2];
+                        
+                        // Calcula a luminosidade do pixel
+                        const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+
+                        // Se for escuro o suficiente, desenha a "areia"
+                        if (brightness < 200) {
+                            // Escolhe um caractere baseado na posição e no tempo
+                            const charIndex = Math.floor((x + y + timeOffset * 10) % sandCharacters.length);
+                            const character = sandCharacters[charIndex];
+
+                            // Cria o movimento errático (areia escorrendo/tremendo)
+                            const noiseX = Math.sin(y * 0.1 + timeOffset) * 2;
+                            const noiseY = Math.cos(x * 0.1 + timeOffset) * 2;
+
+                            // Opacidade baseada na escuridão do pixel (áreas mais escuras = mais opacas)
+                            const alpha = 1 - (brightness / 200);
+                            ctx.fillStyle = `rgba(44, 37, 25, ${alpha})`;
+                            
+                            ctx.fillText(character, x + noiseX, y + noiseY);
+                        }
+                    }
+                }
+            }
+            requestAnimationFrame(renderSand);
+        }
+
+        initCamera();
+        fetchLiveDust();
+        renderSand();
+    </script>
+</body>
+</html>

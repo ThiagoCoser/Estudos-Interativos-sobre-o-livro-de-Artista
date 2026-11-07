@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Interface de Desenho</title>
+    <style>
+        /* === TRAVAMENTO DE TELA E CENTRALIZAÇÃO GERAL === */
+        body {
+            display: flex;
+            justify-content: center;
+            /* Centraliza o bloco inteiro horizontalmente */
+            align-items: center;
+            /* Centraliza o bloco inteiro verticalmente */
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 15px;
+            box-sizing: border-box;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            /* Remove rolagem da página */
+            overscroll-behavior-y: none;
+        }
+
+        /* Envolve tanto o Canvas quanto a Barra de Ferramentas */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            /* Espaço exato entre o desenho e a barra de botões */
+            width: 100%;
+            /* Limita o tamanho máximo total, garantindo que o quadrado 1024 não ultrapasse a tela */
+            max-width: 1024px;
+            max-height: 100%;
+        }
+
+        /* O CONTAINER define a área perfeitamente quadrada (1:1) */
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 1024px;
+            /* Se a altura da tela for menor que a largura, ele usa a altura como base (vh - espaço das ferramentas) */
+            max-height: calc(100dvh - 100px);
+            aspect-ratio: 1 / 1;
+            /* Força matematicamente o formato quadrado */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            border-radius: 4px;
+            background-color: #ffffff;
+
+            /* Dica extra para garantir que não estique errado no flex: */
+            flex-shrink: 1;
+        }
+
+        canvas {
+            background-color: #ffffff;
+            border: 2px solid #333;
+            border-radius: 4px;
+            cursor: none;
+            touch-action: none;
+            display: block;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Barra de Ferramentas (agora fica junto ao desenho) */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 600px;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            /* Garante que a barra nunca seja esmagada */
+        }
+
+        #cursorPreview {
+            position: fixed;
+            border: 1px solid #000;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 20;
+            box-shadow: 0 0 2px rgba(255, 255, 255, 0.9), inset 0 0 2px rgba(255, 255, 255, 0.9);
+        }
+
+        #statusMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
+            font-size: 20px;
+            text-align: center;
+            display: none;
+            z-index: 10;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        #btnDraw {
+            background: #333;
+            color: #fff;
+        }
+
+        #btnErase {
+            background: #ddd;
+            color: #333;
+        }
+
+        #btnSave {
+            background: #4CAF50;
+            color: #fff;
+            font-size: 16px;
+            width: 100%;
+            max-width: 150px;
+        }
+
+        #btnSave:hover {
+            background: #45a049;
+        }
+
+        .active-tool {
+            box-shadow: 0 0 0 3px #2196F3;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Um contêiner que une tudo e fica no centro exato da tela -->
+    <div class="app-container">
+
+        <div class="canvas-container">
+            <canvas id="drawCanvas" width="1024" height="1024"></canvas>
+            <div id="statusMessage"></div>
+        </div>
+
+        <div class="toolbar">
+            <button id="btnDraw" class="active-tool">Lápis</button>
+            <button id="btnErase">Borracha</button>
+
+            <label for="brushSize" style="font-size:14px; font-weight:bold;">Tam:</label>
+            <input type="range" id="brushSize" min="1" max="50" value="25" style="width: 80px;">
+
+            <button id="btnSave">Enviar</button>
+        </div>
+
+    </div>
+
+    <div id="cursorPreview"></div>
+
+    <script>
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbxDQgWsR62kCxY7gmI6dawdEKH3Kj9S9XB3VZxcRDfJhEgMk3e1jOr11DNHFJoEkzST/exec';
+
+        const canvas = document.getElementById('drawCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusMsg = document.getElementById('statusMessage');
+        const cursorPreview = document.getElementById('cursorPreview');
+
+        let isDrawing = false;
+        let mode = 'draw';
+        let brushSize = 25;
+
+        // Variáveis do Delay (Lazy Brush)
+        const smoothFactor = 0.15;
+        let targetPos = { x: 0, y: 0 };
+        let currentPos = { x: 0, y: 0 };
+        let lastDrawPos = { x: 0, y: 0 };
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Função corrigida para lidar perfeitamente com redimensionamentos extremos
+        function updatePreviewSize() {
+            const rect = canvas.getBoundingClientRect();
+            // A largura em pixels visíveis na tela dividida pela resolução interna real (1024)
+            const scaleX = rect.width / canvas.width;
+
+            const visualSize = brushSize * scaleX;
+            cursorPreview.style.width = visualSize + 'px';
+            cursorPreview.style.height = visualSize + 'px';
+        }
+
+        updatePreviewSize();
+        window.addEventListener('resize', updatePreviewSize);
+
+        const btnDraw = document.getElementById('btnDraw');
+        const btnErase = document.getElementById('btnErase');
+        const sliderSize = document.getElementById('brushSize');
+
+        sliderSize.addEventListener('input', (e) => {
+            brushSize = e.target.value;
+            updatePreviewSize();
+        });
+
+        btnDraw.addEventListener('click', () => {
+            mode = 'draw';
+            btnDraw.classList.add('active-tool');
+            btnErase.classList.remove('active-tool');
+        });
+
+        btnErase.addEventListener('click', () => {
+            mode = 'erase';
+            btnErase.classList.add('active-tool');
+            btnDraw.classList.remove('active-tool');
+        });
+
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = evt.clientX || (evt.touches && evt.touches[0].clientX);
+            const clientY = evt.clientY || (evt.touches && evt.touches[0].clientY);
+
+            // Escala para transpor a posição da tela (seja qual for o tamanho CSS do momento)
+            // para dentro dos 1024x1024px que estão sendo desenhados na memória
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY,
+                screenX: clientX,
+                screenY: clientY
+            };
+        }
+
+        function updateCursorPreview(pos) {
+            if (pos.screenX && pos.screenY) {
+                cursorPreview.style.left = pos.screenX + 'px';
+                cursorPreview.style.top = pos.screenY + 'px';
+            }
+        }
+
+        function renderLoop() {
+            if (!isDrawing) return;
+
+            const dx = targetPos.x - currentPos.x;
+            const dy = targetPos.y - currentPos.y;
+
+            currentPos.x += dx * smoothFactor;
+            currentPos.y += dy * smoothFactor;
+
+            ctx.lineWidth = brushSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = mode === 'draw' ? '#000000' : '#ffffff';
+
+            ctx.beginPath();
+            ctx.moveTo(lastDrawPos.x, lastDrawPos.y);
+            ctx.lineTo(currentPos.x, currentPos.y);
+            ctx.stroke();
+
+            lastDrawPos.x = currentPos.x;
+            lastDrawPos.y = currentPos.y;
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        const startDrawing = (e) => {
+            e.preventDefault();
+            isDrawing = true;
+
+            const pos = getMousePos(e);
+            updateCursorPreview(pos);
+
+            targetPos = { x: pos.x, y: pos.y };
+            currentPos = { x: pos.x, y: pos.y };
+            lastDrawPos = { x: pos.x, y: pos.y };
+
+            ctx.fillStyle = mode === 'draw' ? '#000000' : '#ffffff';
+            ctx.beginPath();
+            ctx.arc(currentPos.x, currentPos.y, brushSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            requestAnimationFrame(renderLoop);
+        };
+
+        const stopDrawing = () => {
+            isDrawing = false;
+        };
+
+        const updateTarget = (e) => {
+            e.preventDefault();
+            const pos = getMousePos(e);
+            updateCursorPreview(pos);
+            if (isDrawing) {
+                targetPos = pos;
+            }
+        };
+
+        canvas.addEventListener('mouseenter', () => cursorPreview.style.display = 'block');
+        canvas.addEventListener('mouseleave', () => {
+            cursorPreview.style.display = 'none';
+            stopDrawing();
+        });
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mousemove', updateTarget);
+
+        canvas.addEventListener('touchstart', (e) => {
+            cursorPreview.style.display = 'block';
+            startDrawing(e);
+        }, { passive: false });
+        canvas.addEventListener('touchend', () => {
+            cursorPreview.style.display = 'none';
+            stopDrawing();
+        });
+        canvas.addEventListener('touchmove', updateTarget, { passive: false });
+
+        document.getElementById('btnSave').addEventListener('click', () => {
+            const dataURL = canvas.toDataURL('image/png');
+            const base64Data = dataURL.split(',')[1];
+            const timestamp = new Date().getTime();
+
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            cursorPreview.style.display = 'none';
+            statusMsg.innerText = "Enviando...";
+            statusMsg.style.color = "#333";
+            statusMsg.style.display = "block";
+
+            fetch(scriptURL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    image: base64Data,
+                    filename: 'desenho_' + timestamp + '.png'
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        statusMsg.innerText = "✓ Enviado!";
+                        statusMsg.style.color = "green";
+                    } else {
+                        statusMsg.innerText = "Erro ao salvar.";
+                        statusMsg.style.color = "red";
+                    }
+                    setTimeout(() => { statusMsg.style.display = "none"; }, 2500);
+                })
+                .catch(error => {
+                    console.error("Erro:", error);
+                    statusMsg.innerText = "Erro de conexão.";
+                    statusMsg.style.color = "red";
+                    setTimeout(() => { statusMsg.style.display = "none"; }, 2500);
+                });
+        });
+    </script>
+</body>
+
+</html>

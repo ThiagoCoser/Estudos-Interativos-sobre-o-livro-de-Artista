@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O Livro de Areia - Biblioteca Infinita</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri&family=Cinzel:wght@400;700&display=swap');
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0a0908;
+            color: #2c2519;
+            font-family: 'Cinzel', serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        #book-cover {
+            position: absolute;
+            z-index: 10;
+            width: 400px;
+            height: 550px;
+            background-image: url('capa.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: 5px 20px 20px 5px;
+            box-shadow: 15px 15px 30px rgba(0, 0, 0, 0.8), inset 5px 0 20px rgba(0, 0, 0, 0.5);
+            border-left: 15px solid #2a1f18;
+            transition: transform 2s cubic-bezier(0.4, 0, 0.2, 1), opacity 2s ease, filter 2s ease;
+        }
+
+        body.is-dissolving #book-cover {
+            transform: scale(1.1) rotate(3deg) translateY(-20px);
+            opacity: 0;
+            filter: url(#sand-dissolve) blur(10px) contrast(150%);
+            pointer-events: none;
+        }
+
+        #codex-container {
+            position: relative;
+            width: 90vw;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            perspective: 2500px;
+            transition: opacity 2s ease;
+        }
+
+        body.is-open #codex-container {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #codex-page {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: #e3dec6;
+            border: 1px solid rgba(44, 37, 25, 0.2);
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.1), 0 10px 30px rgba(0, 0, 0, 0.6);
+            display: grid;
+            grid-template-columns: 1.5fr 2fr 1.5fr;
+            padding: 3rem;
+            gap: 2rem;
+            box-sizing: border-box;
+            transform-style: preserve-3d;
+            transform-origin: center;
+            align-items: center;
+        }
+
+        .turning-page {
+            animation: turnPageAnim 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes turnPageAnim {
+            0% {
+                transform: rotateY(0deg) scale(1);
+                opacity: 1;
+                filter: blur(0px);
+            }
+
+            45% {
+                transform: rotateY(-90deg) scale(0.95);
+                opacity: 0;
+                filter: blur(10px);
+            }
+
+            55% {
+                transform: rotateY(90deg) scale(0.95);
+                opacity: 0;
+                filter: blur(10px);
+            }
+
+            100% {
+                transform: rotateY(0deg) scale(1);
+                opacity: 1;
+                filter: blur(0px);
+            }
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            height: 85%;
+            gap: 1.5rem;
+        }
+
+        .block-standard {
+            font-family: 'Amiri', serif;
+            font-size: 1rem;
+            line-height: 1.7;
+            text-align: justify;
+            text-justify: inter-word;
+            padding: 1.5rem;
+            background: rgba(44, 37, 25, 0.04);
+            border-radius: 4px;
+            border-left: 3px solid rgba(44, 37, 25, 0.3);
+            overflow: hidden;
+            flex-grow: 1;
+        }
+
+        .block-vertical-rl {
+            font-family: 'Amiri', serif;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            text-align: justify;
+            background: rgba(44, 37, 25, 0.02);
+            padding: 1rem;
+            border-radius: 3px;
+            border-top: 3px solid rgba(44, 37, 25, 0.3);
+            overflow: hidden;
+            flex-grow: 1;
+            max-height: 65%;
+        }
+
+        .block-diagonal-right {
+            font-family: 'Amiri', serif;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            text-align: left;
+            background: rgba(44, 37, 25, 0.05);
+            padding: 1rem;
+            border-radius: 2px;
+            transform: rotate(-2deg);
+            border-left: 2px solid rgba(44, 37, 25, 0.4);
+            overflow: hidden;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .block-diagonal-left {
+            font-family: 'Amiri', serif;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            text-align: right;
+            background: rgba(44, 37, 25, 0.03);
+            padding: 1rem;
+            border-radius: 2px;
+            transform: rotate(2deg);
+            border-right: 2px solid rgba(44, 37, 25, 0.4);
+            overflow: hidden;
+        }
+
+        .block-heavy {
+            font-family: 'Amiri', serif;
+            font-weight: bold;
+            font-size: 1.15rem;
+            line-height: 1.5;
+            text-align: justify;
+            border-bottom: 2px solid rgba(44, 37, 25, 0.5);
+            padding-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .block-minimal {
+            font-family: 'Cinzel', serif;
+            font-size: 0.75rem;
+            line-height: 1.6;
+            text-align: right;
+            opacity: 0.7;
+            overflow: hidden;
+        }
+
+        .glyph-large {
+            font-size: 1.4rem;
+            font-weight: bold;
+            line-height: 0.7;
+        }
+
+        .glyph-rotated {
+            display: inline-block;
+            transform: rotate(-15deg);
+        }
+
+        .glyph-dropcap {
+            float: left;
+            font-size: 3.5rem;
+            line-height: 0.6;
+            padding-right: 8px;
+            font-family: 'Cinzel', serif;
+        }
+
+        #sand-canvas {
+            width: 100%;
+            height: 85%;
+            object-fit: cover;
+            filter: url(#sand-distortion) contrast(1.1) sepia(0.5) brightness(0.9) blur(0.5px);
+            border-radius: 8px;
+        }
+
+        #webcam-video {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <svg style="display: none;">
+        <filter id="sand-dissolve">
+            <feTurbulence type="fractalNoise" baseFrequency="0.12" numOctaves="4" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="45" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id="sand-distortion">
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" id="turbulence" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G"
+                id="displacement" />
+        </filter>
+    </svg>
+
+    <div id="book-cover"></div>
+
+    <div id="codex-container">
+        <div id="codex-page">
+            <div class="sidebar" id="left-sidebar">
+                <div class="block-standard"><span class='glyph-dropcap'>...</span>Abrindo os portais da biblioteca
+                    infinita...</div>
+            </div>
+
+            <div
+                style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                <canvas id="sand-canvas"></canvas>
+            </div>
+
+            <div class="sidebar" id="right-sidebar"></div>
+        </div>
+    </div>
+
+    <video id="webcam-video" autoplay playsinline></video>
+
+    <script>
+        const bookCover = document.getElementById('book-cover');
+        const codexPage = document.getElementById('codex-page');
+        const video = document.getElementById('webcam-video');
+        const canvas = document.getElementById('sand-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        const leftSidebar = document.getElementById('left-sidebar');
+        const rightSidebar = document.getElementById('right-sidebar');
+
+        let width, height;
+        let sandCharacters = "O LIVRO DE AREIA SE DESDOBRA. ";
+        let timeOffset = 0;
+
+        const step = 14;
+        let isTurning = false;
+        let isDissolving = false;
+
+        let webImage = new Image();
+        webImage.crossOrigin = "Anonymous";
+        let isImageLoaded = false;
+
+        // Conjuntos de rastreamento para garantir conteúdo único (nunca repete)
+        const usedExcerpts = new Set();
+        const usedImageIds = new Set();
+
+        // Banco massivo de termos para busca de livros na biblioteca infinita
+        const sementesDeBusca = [
+            // Temas borgianos e metafísicos
+            "poesia", "tempo", "labirinto", "espelho", "esquecimento", "areia", "universo",
+            "babel", "infinito", "sombra", "memoria", "noite", "estrela", "silêncio",
+            "ruínas", "sonho", "mar", "vento", "escuridão", "cidade", "fantasma",
+            "filosofia", "história", "arte", "mistério", "alquimia", "fábulas",
+            "literatura", "drama", "ensaio", "antologia", "verso", "céu",
+            // Natureza e cosmos
+            "floresta", "montanha", "rio", "oceano", "lua", "sol", "cometa",
+            "nuvem", "trovão", "relâmpago", "aurora", "crepúsculo", "abismo",
+            "deserto", "ilha", "vulcão", "cristal", "pedra", "raiz", "jardim",
+            // Civilização e cultura
+            "templo", "biblioteca", "museu", "catedral", "palácio", "ruína",
+            "manuscrito", "pergaminho", "tinta", "caligrafia", "hieróglifo",
+            "oráculo", "profecia", "mito", "lenda", "epopeia", "tragédia",
+            // Ciência e conhecimento
+            "álgebra", "geometria", "astronomia", "botânica", "anatomia",
+            "cartografia", "navegação", "telescópio", "óptica", "harmonia",
+            // Emoções e estados
+            "melancolia", "nostalgia", "êxtase", "vertigem", "solidão",
+            "angústia", "esperança", "saudade", "encantamento", "assombro",
+            // Objetos e símbolos
+            "relógio", "ampulheta", "chave", "porta", "janela", "escada",
+            "máscara", "coroa", "espada", "cálice", "mapa", "bússola",
+            // Abstrações
+            "destino", "acaso", "eternidade", "paradoxo", "enigma",
+            "metamorfose", "revelação", "travessia", "limiar", "fronteira",
+            // Figuras e arquétipos
+            "viajante", "ermitão", "vidente", "alquimista", "navegador",
+            "escriba", "guardião", "herói", "duplo", "peregrino"
+        ];
+
+        // Termos para busca de obras de arte (Art Institute of Chicago)
+        const termosDeArte = [
+            "landscape", "portrait", "drawing", "sketch", "watercolor",
+            "illustration", "print", "etching", "engraving", "woodcut",
+            "still life", "figure", "mythology", "allegory", "botanical",
+            "animal", "architecture", "religious", "abstract", "geometric",
+            "surrealism", "expressionism", "romanticism", "impressionism",
+            "baroque", "renaissance", "medieval", "japanese", "chinese",
+            "persian", "ancient", "sculpture", "textile", "mosaic",
+            "ink", "charcoal", "lithograph", "pastel", "tempera",
+            "illuminated", "calligraphy", "map", "celestial", "ocean",
+            "forest", "mountain", "ruins", "garden", "night", "dream"
+        ];
+
+        function resize() {
+            if (!canvas.parentElement) return;
+            width = canvas.parentElement.clientWidth;
+            height = canvas.parentElement.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        document.addEventListener('click', () => {
+            if (!document.body.classList.contains('is-open')) {
+                if (!isDissolving) {
+                    isDissolving = true;
+                    document.body.classList.add('is-dissolving');
+
+                    setTimeout(() => {
+                        bookCover.style.display = 'none';
+                        document.body.classList.add('is-open');
+                        initCamera();
+                        updatePageContent();
+                        setTimeout(renderSand, 2500);
+                        isDissolving = false;
+                    }, 1800);
+                }
+                return;
+            }
+
+            if (isTurning) return;
+            turnPage();
+        });
+
+        function turnPage() {
+            isTurning = true;
+            codexPage.classList.add('turning-page');
+
+            document.getElementById('turbulence').setAttribute('baseFrequency', '0.06');
+            document.getElementById('displacement').setAttribute('scale', '15');
+
+            setTimeout(() => {
+                updatePageContent();
+            }, 1500);
+
+            setTimeout(() => {
+                codexPage.classList.remove('turning-page');
+                document.getElementById('turbulence').setAttribute('baseFrequency', '0.04');
+                document.getElementById('displacement').setAttribute('scale', '8');
+                isTurning = false;
+            }, 3000);
+        }
+
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Erro na câmera: ", err);
+            }
+        }
+
+        function generateTruncatedTypography(text, useDropCap = false) {
+            let result = '';
+            const glifosExtras = " ℵ ℞ منْهُ أَنْ ~ § · × ÷ ";
+
+            if (useDropCap && text.length > 0) {
+                result += `<span class="glyph-dropcap">${text[0]}</span>`;
+                text = text.substring(1);
+            }
+
+            for (let i = 0; i < text.length; i++) {
+                let char = text[i];
+                const rand = Math.random();
+
+                if (rand > 0.94) {
+                    result += `<span class="glyph-large">${char}</span>`;
+                } else if (rand > 0.88) {
+                    result += `<span class="glyph-rotated">${char}</span>`;
+                } else if (rand > 0.83) {
+                    const glifeAleatorio = glifosExtras[Math.floor(Math.random() * glifosExtras.length)];
+                    result += `<span style="font-family:'Amiri'; opacity:0.6;">${glifeAleatorio}</span>${char}`;
+                } else {
+                    result += char;
+                }
+            }
+            return result;
+        }
+
+        // Banco de trechos literários clássicos (garante textos razoáveis e profundos)
+        const trechosClassicos = [
+            "O tempo é a substância de que sou feito. O tempo é um rio que me arrebata, mas eu sou o rio; é um tigre que me devora, mas eu sou o tigre; é um fogo que me consome, mas eu sou o fogo.",
+            "Não há no mundo um único livro que não contenha o seu contrário. O Livro de Areia é um compêndio infinito, cujas páginas não guardam ordem alguma e cujo fim é inacessível.",
+            "Vi o populoso mar, vi a alvorada e a noite, vi as multidões da América, vi uma prateada teia de aranha no centro de uma negra pirâmide, vi um labirinto quebrado.",
+            "Nas cidades invisíveis de Maurília, o viajante é convidado a visitar a cidade e a contemplar ao mesmo tempo antigos cartões-postais que a representam exatamente como era.",
+            "Uma cidade não consiste em suas relações com o passado, mas na medida em que este passado está inscrito em suas linhas, escrito nos cantos das ruas, nas grades das janelas.",
+            "Pensar que estou lendo este livro enquanto o livro me lê, e que ambos somos observados por um olho invisível que se move silencioso através da biblioteca de Babel.",
+            "Como se pudéssemos escolher na vida as páginas que queremos ler e rasgar as outras, sem saber que o livro se refaz a cada noite na prateleira mais alta.",
+            "Sei muito bem que se eu virar as costas a esta estante, as palavras escritas nos volumes fechados começarão a mudar de lugar, recombinando-se num dialeto desconhecido.",
+            "Tenho pensamentos que, se pudesse realizá-los e dar-lhes vida, estragariam a unidade do mundo e fariam os homens duvidar da própria realidade que os cerca.",
+            "A literatura, como toda arte, é uma confissão de que a via não basta. Escrevemos porque a realidade imediata é uma prisão e as palavras são a única fuga.",
+            "Não sou nada. Nunca serei nada. Não posso querer ser nada. À parte isso, tenho em mim todos os sonhos do mundo.",
+            "Era uma vez um rei que queria ver o fim do mundo, e mandou construir uma nau de pedra que navegava sobre as águas como se fosse uma folha leve de outono.",
+            "Se podes olhar, vê. Se podes ver, repara. O destino de cada homem está traçado nas entrelinhas de um manuscrito que ninguém jamais conseguiu terminar.",
+            "Mudam-se os tempos, mudam-se as vontades, muda-se o ser, muda-se a confiança; todo o mundo é composto de mudança, tomando sempre novas qualidades.",
+            "Algum tempo hesitei se devia abrir estas memórias pelo princípio ou pelo fim, isto é, se poria em primeiro lugar o meu nascimento ou a minha morte.",
+            "A cada instante o mundo se dissolve e se reconstrói. A areia que corre na ampulheta não é diferente das palavras que escapam de nossa memória enquanto dormimos.",
+            "Que mistério é esse de existir que de repente nos assalta no meio da tarde e nos faz olhar para as próprias mãos como se fossem objetos estranhos?",
+            "Escrever é procurar entender, é tentar reproduzir o impossível, é sentir que a palavra é apenas uma sombra da coisa que ela tenta nomear.",
+            "O universo (que outros chamam a Biblioteca) compõe-se de um número indefinido, e talvez infinito, de galerias hexagonais, com vastos poços de ventilação no meio.",
+            "Dizer que um livro é infinito não é dizer que ele nunca termina, mas sim que cada vez que o abrimos, as frases mudaram de lugar e a história é outra.",
+            "Tudo o que a linguagem pode expressar já foi escrito nesta biblioteca por alguém, em algum momento do tempo, em algum dos infinitos volumes das estantes.",
+            "A imaginação é uma floresta onde cada árvore é um livro e cada folha é uma palavra que sussurra segredos quando o vento da noite sopra.",
+            "Atrás de cada palavra escrita há uma ausência, um espaço vazio que o leitor deve preencher com suas próprias memórias e esquecimentos.",
+            "Escrevo para me livrar de mim mesmo, para projetar no papel as sombras que habitam o sótão da minha mente e que não me deixam dormir em paz.",
+            "Ao acordar certa manhã de sonhos intranquilos, Gregor Samsa encontrou-se em sua cama metamorfoseado num inseto monstruoso.",
+            "O processo de leitura é uma viagem circular: partimos de nós mesmos, atravessamos oceanos de papel e retornamos ao mesmo lugar, mas já não somos os mesmos."
+        ];
+
+        // GERADOR PROCEDURAL — 14.400+ combinações únicas impossíveis de repetir
+        function generateProceduralFragment() {
+            const sujeitos = [
+                "O viajante cego", "O bibliotecário", "A sombra do escriba",
+                "Um peregrino", "O último cartógrafo", "A vidente",
+                "O alquimista", "Um monge silencioso", "O guardião dos livros",
+                "A tradutora de línguas mortas", "O astrônomo do deserto",
+                "Um navegador sem bússola"
+            ];
+            const verbos = [
+                "encontrou nas margens de um códice", "decifrou num pergaminho esquecido",
+                "contemplou no reflexo de um espelho antigo", "transcreveu à luz de velas",
+                "sussurrou para as paredes da biblioteca", "gravou numa tábua de cera",
+                "leu nas constelações de outono", "descobriu entre folhas apodrecidas",
+                "traduziu de uma língua sem alfabeto", "murmurou ao cruzar o umbral"
+            ];
+            const objetos = [
+                "a fórmula do esquecimento", "o mapa de uma cidade impossível",
+                "as coordenadas de um sonho recorrente", "a genealogia dos espelhos",
+                "o catálogo de todos os silêncios", "a gramática de uma língua extinta",
+                "o teorema da areia infinita", "a partitura do vento noturno",
+                "o inventário das sombras perdidas", "a cartografia do labirinto interior",
+                "o compêndio das estrelas apagadas", "a enciclopédia dos gestos esquecidos"
+            ];
+            const complementos = [
+                "na penúltima prateleira do corredor hexagonal",
+                "sob a poeira de séculos sem nome",
+                "entre as páginas de um livro que se reescreve sozinho",
+                "no instante preciso em que a aurora se dissolvia",
+                "onde o tempo se bifurca em caminhos de areia",
+                "num volume cuja lombada não porta título algum",
+                "no verso de uma página que ninguém jamais virou",
+                "enquanto a tinta ainda tremia sobre o papel",
+                "no silêncio que separa duas palavras sagradas",
+                "na margem de um rio que flui para trás"
+            ];
+            const s = sujeitos[Math.floor(Math.random() * sujeitos.length)];
+            const v = verbos[Math.floor(Math.random() * verbos.length)];
+            const o = objetos[Math.floor(Math.random() * objetos.length)];
+            const c = complementos[Math.floor(Math.random() * complementos.length)];
+            return `${s} ${v} ${o} ${c}.`;
+        }
+
+        function cleanHTML(text) {
+            return text.replace(/(<([^>]+)>)/gi, "")
+                       .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+                       .replace(/&amp;/g, "&").replace(/&lt;/g, "<")
+                       .replace(/&gt;/g, ">").replace(/&nbsp;/g, " ")
+                       .replace(/\s+/g, ' ').trim();
+        }
+
+        // BUSCA EXPANDIDA — Google Books + Open Library + Biblioteca Clássica + Gerador Procedural
+        async function fetchInfiniteLibrary() {
+            const termos = [];
+            while (termos.length < 3) {
+                const t = sementesDeBusca[Math.floor(Math.random() * sementesDeBusca.length)];
+                if (!termos.includes(t)) termos.push(t);
+            }
+
+            let allExcerpts = [];
+
+            // === FONTE 1: Google Books (Puxa apenas trechos reais e descrições longas) ===
+            try {
+                const gbPromises = termos.map((termo, i) => {
+                    const startIndex = Math.floor(Math.random() * 30);
+                    const langs = ['pt', '', 'es'];
+                    const langParam = langs[i] ? `&langRestrict=${langs[i]}` : '';
+                    return fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(termo)}&startIndex=${startIndex}&maxResults=6${langParam}`)
+                        .then(r => r.json())
+                        .catch(() => null);
+                });
+
+                const gbResults = await Promise.all(gbPromises);
+
+                for (const data of gbResults) {
+                    if (!data || !data.items) continue;
+                    for (const item of data.items) {
+                        const info = item.volumeInfo || {};
+                        const snippet = item.searchInfo?.textSnippet || '';
+                        const desc = info.description || '';
+
+                        // Trecho do snippet (mínimo de 80 caracteres para ser um trecho razoável)
+                        if (snippet) {
+                            const clean = cleanHTML(snippet);
+                            if (clean.length > 80 && !usedExcerpts.has(clean)) {
+                                allExcerpts.push(clean);
+                            }
+                        }
+
+                        // Trecho da descrição (mínimo de 100 caracteres)
+                        if (desc && desc !== snippet) {
+                            let clean = cleanHTML(desc);
+                            if (clean.length > 100) {
+                                // Se for muito longa, tenta extrair uma parte representativa
+                                if (clean.length > 350) {
+                                    const sentences = clean.split(/[.!?]+/);
+                                    let chunk = "";
+                                    for (let s of sentences) {
+                                        s = s.trim();
+                                        if (s.length > 40) {
+                                            chunk += s + ". ";
+                                            if (chunk.length > 150) break;
+                                        }
+                                    }
+                                    clean = chunk.trim();
+                                }
+                                if (clean.length > 80 && !usedExcerpts.has(clean)) {
+                                    allExcerpts.push(clean);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("Google Books falhou:", err);
+            }
+
+            // === FONTE 2: Open Library (Puxa apenas primeira frase se for longa o suficiente) ===
+            try {
+                const olTermo = termos[Math.floor(Math.random() * termos.length)];
+                const olOffset = Math.floor(Math.random() * 50);
+                const olRes = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(olTermo)}&limit=6&offset=${olOffset}&fields=first_sentence`);
+                const olData = await olRes.json();
+
+                if (olData.docs) {
+                    for (const doc of olData.docs) {
+                        if (doc.first_sentence) {
+                            const sentence = Array.isArray(doc.first_sentence) ? doc.first_sentence[0] : String(doc.first_sentence);
+                            const clean = cleanHTML(sentence);
+                            if (clean.length > 80 && !usedExcerpts.has(clean)) {
+                                allExcerpts.push(clean);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("Open Library falhou:", err);
+            }
+
+            // Mistura os trechos clássicos disponíveis que ainda não foram exibidos nesta sessão
+            const classicosDisponiveis = trechosClassicos.filter(t => !usedExcerpts.has(t));
+            classicosDisponiveis.sort(() => Math.random() - 0.5);
+            allExcerpts = allExcerpts.concat(classicosDisponiveis);
+
+            console.log(`[Biblioteca Infinita] ${allExcerpts.length} trechos candidatos únicos obtidos.`);
+
+            // Embaralha para aleatoriedade total
+            allExcerpts.sort(() => Math.random() - 0.5);
+
+            const selected = [];
+            for (const excerpt of allExcerpts) {
+                if (selected.length >= 6) break;
+                // Garante unicidade absoluta dos blocos na mesma página
+                if (!selected.includes(excerpt)) {
+                    selected.push(excerpt);
+                    usedExcerpts.add(excerpt);
+                }
+            }
+
+            // Gerencia o histórico global para evitar repetições no longo prazo
+            if (usedExcerpts.size > 800) {
+                const arr = Array.from(usedExcerpts);
+                usedExcerpts.clear();
+                arr.slice(-150).forEach(t => usedExcerpts.add(t));
+            }
+
+            // Caso extremo: se não houver o suficiente, gera trechos procedurais borgianos
+            while (selected.length < 6) {
+                let frag;
+                let attempts = 0;
+                do {
+                    frag = generateProceduralFragment();
+                    attempts++;
+                } while (selected.includes(frag) && attempts < 30);
+                selected.push(frag);
+                usedExcerpts.add(frag);
+            }
+
+            console.log(`[Biblioteca Infinita] Página montada com ${selected.length} trechos literários únicos.`);
+            return selected;
+        }
+
+        function applyLayoutTemplate(trechos) {
+            leftSidebar.innerHTML = '';
+            rightSidebar.innerHTML = '';
+
+            const layoutType = Math.floor(Math.random() * 4) + 1;
+
+            if (layoutType === 1) {
+                leftSidebar.innerHTML = `<div class="block-standard">${generateTruncatedTypography(trechos[0] + ' ' + trechos[1], true)}</div>`;
+            }
+            else if (layoutType === 2) {
+                leftSidebar.innerHTML = `<div class="block-standard">${generateTruncatedTypography(trechos[0], true)}</div>`;
+                rightSidebar.innerHTML = `<div class="block-vertical-rl">${generateTruncatedTypography(trechos[1], false)}</div>`;
+            }
+            else if (layoutType === 3) {
+                leftSidebar.innerHTML = `<div class="block-standard">${generateTruncatedTypography(trechos[0], true)}</div>`;
+                rightSidebar.innerHTML = `
+                    <div class="block-diagonal-right">${generateTruncatedTypography(trechos[1], false)}</div>
+                    <div class="block-vertical-rl">${generateTruncatedTypography(trechos[2], false)}</div>
+                `;
+            }
+            else if (layoutType === 4) {
+                leftSidebar.innerHTML = `
+                    <div class="block-heavy">${generateTruncatedTypography(trechos[0], true)}</div>
+                    <div class="block-diagonal-left">${generateTruncatedTypography(trechos[1], false)}</div>
+                `;
+                rightSidebar.innerHTML = `
+                    <div class="block-vertical-rl">${generateTruncatedTypography(trechos[2], false)}</div>
+                    <div class="block-minimal">${generateTruncatedTypography(trechos[3], false)}</div>
+                `;
+            }
+
+            // O último trecho selecionado alimenta o fluxo semântico da webcam
+            sandCharacters = trechos[5].toUpperCase() + " • ";
+        }
+
+        // BUSCA DE OBRAS DE ARTE — Art Institute of Chicago + Metropolitan Museum
+        async function fetchArtImage() {
+            const termo = termosDeArte[Math.floor(Math.random() * termosDeArte.length)];
+            const page = Math.floor(Math.random() * 80) + 1;
+
+            try {
+                const res = await fetch(
+                    `https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(termo)}&limit=12&page=${page}&fields=id,title,image_id,artwork_type_title`
+                );
+                const data = await res.json();
+
+                if (data.data && data.data.length > 0) {
+                    // Filtra obras que têm imagem e que ainda não foram exibidas
+                    const candidates = data.data.filter(item =>
+                        item.image_id && !usedImageIds.has(item.image_id)
+                    );
+
+                    if (candidates.length > 0) {
+                        const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+                        usedImageIds.add(chosen.image_id);
+
+                        // Limpa cache de imagens se necessário (mantém últimas 50)
+                        if (usedImageIds.size > 200) {
+                            const arr = Array.from(usedImageIds);
+                            usedImageIds.clear();
+                            arr.slice(-50).forEach(id => usedImageIds.add(id));
+                        }
+
+                        return `https://www.artic.edu/iiif/2/${chosen.image_id}/full/!1200,800/0/default.jpg`;
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao buscar obra de arte (AIC):", err);
+            }
+
+            // Fallback: Metropolitan Museum of Art
+            try {
+                const metTerms = ["painting", "drawing", "print", "photograph", "watercolor"];
+                const metTerm = metTerms[Math.floor(Math.random() * metTerms.length)];
+                const metRes = await fetch(
+                    `https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=${metTerm}`
+                );
+                const metData = await metRes.json();
+
+                if (metData.objectIDs && metData.objectIDs.length > 0) {
+                    const randomId = metData.objectIDs[Math.floor(Math.random() * Math.min(metData.objectIDs.length, 500))];
+                    const objRes = await fetch(
+                        `https://collectionapi.metmuseum.org/public/collection/v1/objects/${randomId}`
+                    );
+                    const objData = await objRes.json();
+
+                    if (objData.primaryImageSmall) {
+                        return objData.primaryImageSmall;
+                    }
+                }
+            } catch (err2) {
+                console.error("Erro no fallback Met Museum:", err2);
+            }
+
+            // Último fallback
+            return `https://picsum.photos/${Math.floor(width)}/${Math.floor(height)}?random=${Date.now()}&grayscale`;
+        }
+
+        async function updatePageContent() {
+            leftSidebar.innerHTML = "<div class='block-standard'><span class='glyph-dropcap'>...</span>Consultando os registros infinitos...</div>";
+            rightSidebar.innerHTML = "";
+
+            // Busca textos e imagem de arte em paralelo
+            const [trechos, artUrl] = await Promise.all([
+                fetchInfiniteLibrary(),
+                fetchArtImage()
+            ]);
+
+            applyLayoutTemplate(trechos);
+
+            isImageLoaded = false;
+            webImage.src = artUrl;
+            webImage.onload = () => {
+                isImageLoaded = true;
+            };
+            webImage.onerror = () => {
+                // Se a imagem de arte falhar, tenta picsum como fallback final
+                webImage.src = `https://picsum.photos/${Math.floor(width)}/${Math.floor(height)}?random=${Date.now()}&grayscale`;
+                webImage.onload = () => { isImageLoaded = true; };
+            };
+        }
+
+        function renderSand() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                ctx.clearRect(0, 0, width, height);
+
+                if (isImageLoaded) {
+                    ctx.globalAlpha = 0.2;
+                    ctx.globalCompositeOperation = 'multiply';
+                    ctx.drawImage(webImage, 0, 0, width, height);
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.globalAlpha = 1.0;
+                }
+
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                tempCtx.translate(width, 0);
+                tempCtx.scale(-1, 1);
+                tempCtx.drawImage(video, 0, 0, width, height);
+
+                const imageData = tempCtx.getImageData(0, 0, width, height);
+                const pixels = imageData.data;
+
+                ctx.font = "14px Amiri";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+
+                timeOffset += 0.03;
+
+                const cols = Math.floor(width / step);
+
+                for (let y = 0; y < height; y += step) {
+                    for (let x = 0; x < width; x += step) {
+                        const index = (y * width + x) * 4;
+                        const r = pixels[index];
+                        const g = pixels[index + 1];
+                        const b = pixels[index + 2];
+
+                        const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+
+                        if (brightness > 90) {
+                            const col = Math.floor(x / step);
+                            const row = Math.floor(y / step);
+
+                            let linearGridIndex = Math.floor(row * cols + col);
+
+                            let charIndex = linearGridIndex % sandCharacters.length;
+                            const character = sandCharacters[charIndex];
+
+                            const hoverX = Math.sin(timeOffset * 1.2 + y * 0.1) * 1.5;
+                            const hoverY = Math.cos(timeOffset * 1.5 + x * 0.1) * 1.5;
+
+                            const alpha = Math.min(0.9, (brightness - 90) / 165);
+                            ctx.fillStyle = `rgba(44, 37, 25, ${alpha})`;
+
+                            ctx.fillText(character, x + hoverX, y + hoverY);
+                        }
+                    }
+                }
+            }
+            requestAnimationFrame(renderSand);
+        }
+    </script>
+</body>
+
+</html>

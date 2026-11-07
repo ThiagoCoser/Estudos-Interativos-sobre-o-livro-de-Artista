@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O Livro de Areia - Bloco Esquerdo</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri&family=Cinzel:wght@400;700&display=swap');
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0a0908;
+            color: #2c2519;
+            font-family: 'Cinzel', serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        #book-cover {
+            position: absolute;
+            z-index: 10;
+            width: 400px;
+            height: 550px;
+            transition: opacity 2.5s ease, transform 3s cubic-bezier(0.25, 1, 0.5, 1);
+            background-image: url('capa.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: 5px 20px 20px 5px;
+            box-shadow: 15px 15px 30px rgba(0, 0, 0, 0.8), inset 5px 0 20px rgba(0, 0, 0, 0.5);
+            border-left: 15px solid #2a1f18;
+        }
+
+        #codex-container {
+            position: relative;
+            width: 90vw;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            perspective: 2500px;
+            transition: opacity 3s ease 1.5s;
+        }
+
+        body.is-open #book-cover {
+            opacity: 0;
+            transform: scale(1.1) rotateY(-110deg);
+        }
+
+        body.is-open #codex-container {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Grid reestruturado: Grande bloco à esquerda, centro com a webcam, direita limpa */
+        #codex-page {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: #e3dec6;
+            border: 1px solid rgba(44, 37, 25, 0.2);
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.1), 0 10px 30px rgba(0, 0, 0, 0.6);
+            display: grid;
+            grid-template-columns: 1.8fr 2fr 0.8fr;
+            padding: 3rem;
+            gap: 2rem;
+            box-sizing: border-box;
+            transform-style: preserve-3d;
+            transform-origin: center;
+            align-items: center;
+        }
+
+        .turning-page {
+            animation: turnPageAnim 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes turnPageAnim {
+            0% {
+                transform: rotateY(0deg) scale(1);
+                opacity: 1;
+                filter: blur(0px);
+            }
+
+            45% {
+                transform: rotateY(-90deg) scale(0.95);
+                opacity: 0;
+                filter: blur(10px);
+            }
+
+            55% {
+                transform: rotateY(90deg) scale(0.95);
+                opacity: 0;
+                filter: blur(10px);
+            }
+
+            100% {
+                transform: rotateY(0deg) scale(1);
+                opacity: 1;
+                filter: blur(0px);
+            }
+        }
+
+        /* O GRANDE BLOCO DE TEXTO À ESQUERDA */
+        #main-text-block {
+            font-family: 'Amiri', serif;
+            color: #2c2519;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            text-align: justify;
+            text-justify: inter-word;
+            height: 85%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 1.5rem;
+            background: rgba(44, 37, 25, 0.04);
+            border-radius: 4px;
+            border-left: 3px solid rgba(44, 37, 25, 0.3);
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .glyph-dropcap {
+            float: left;
+            font-size: 3.8rem;
+            line-height: 0.7;
+            padding-right: 8px;
+            font-family: 'Cinzel', serif;
+        }
+
+        #sand-canvas {
+            width: 100%;
+            height: 85%;
+            object-fit: cover;
+            filter: url(#sand-distortion) contrast(1.1) sepia(0.5) brightness(0.9) blur(0.5px);
+            border-radius: 8px;
+        }
+
+        #webcam-video {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <svg style="display: none;">
+        <filter id="sand-distortion">
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" id="turbulence" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G"
+                id="displacement" />
+        </filter>
+    </svg>
+
+    <div id="book-cover"></div>
+
+    <div id="codex-container">
+        <div id="codex-page">
+            <!-- Grande Bloco de Texto Único à Esquerda -->
+            <div id="main-text-block">
+                <div id="content-text">Carregando o compêndio...</div>
+            </div>
+
+            <!-- Centro: Projeção da Webcam -->
+            <div
+                style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                <canvas id="sand-canvas"></canvas>
+            </div>
+
+            <!-- Lado Direito Limpo (Respiro Editorial) -->
+            <div></div>
+        </div>
+    </div>
+
+    <video id="webcam-video" autoplay playsinline></video>
+
+    <script>
+        const codexPage = document.getElementById('codex-page');
+        const video = document.getElementById('webcam-video');
+        const canvas = document.getElementById('sand-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        let width, height;
+        let sandCharacters = "مِنْهُأَنْيَكُونَأَوْلَكِنَّهُمَكَانَ";
+        let timeOffset = 0;
+
+        const step = 14;
+        let chaosFactor = 1.5;
+        let isTurning = false;
+
+        let webImage = new Image();
+        webImage.crossOrigin = "Anonymous";
+        let isImageLoaded = false;
+
+        const bibliotecaBorgiana = [
+            "O compêndio é monstruoso e secreto. Nenhuma página é a primeira; nenhuma é a última, pois o livro não tem princípio nem fim, multiplicando-se nas sombras da biblioteca infinita de Babel onde os espelhos duplicam o labirinto dos deuses e o tempo escorre como areia fina entre os dedos.",
+            "Esta mancha de tinta nas margens oculta o mapa botânico de um império que já desabou na poeira. As raízes e as estrelas confundem-se nos diagramas perdidos do tempo, traçados por mãos que nunca conheceram o repouso nem a clemência do esquecimento.",
+            "O espelho e a cópula são abomináveis, porque multiplicam o número e o reflexo visível dos homens no abismo de areia onde as eras se desmancham em silêncio absoluto, ecoando passos que nunca foram dados nas galerias circulares.",
+            "Vi a alta noite que não alenta a aurora, vi labirintos intricados na poeira e o centro geométrico de todas as coisas que os deuses esqueceram de criar no princípio dos séculos vazios, onde a matéria se converte em pura linguagem.",
+            "Ninguém é a pátria. Nem o cavaleiro que cruza a fronte oculta, nem a tumba de pedra cinzenta sob a lua fria que ilumina os manuscritos ilegíveis guardados nas criptas subterrâneas de uma cidade esquecida pela história.",
+            "O tempo é a substância de que sou feito. O tempo é um rio que me arrebasta, mas eu sou o rio que se perde nas páginas sem fim deste códice, devorando as próprias margens a cada instante sob o vento invisível.",
+            "Creio que os sóis e as constelações giram no vazio à procura de um nome perdido na memória dos homens e na textura áspera do pergaminho antigo que se desfaz em cinzas luminosas sobre o altar do tempo.",
+            "De todas as obras do homem, nenhuma me pareceu tão vertiginosa quanto a invenção de bibliotecas onde os livros sangram areia e esquecimento sob o olhar indiferente das estrelas distantes."
+        ];
+
+        function resize() {
+            if (!canvas.parentElement) return;
+            width = canvas.parentElement.clientWidth;
+            height = canvas.parentElement.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        document.body.addEventListener('click', () => {
+            if (!document.body.classList.contains('is-open')) {
+                document.body.classList.add('is-open');
+                initCamera();
+                updatePageContent();
+                setTimeout(renderSand, 2500);
+                return;
+            }
+
+            if (isTurning) return;
+            turnPage();
+        });
+
+        function turnPage() {
+            isTurning = true;
+            codexPage.classList.add('turning-page');
+
+            chaosFactor = 15;
+            document.getElementById('turbulence').setAttribute('baseFrequency', '0.06');
+            document.getElementById('displacement').setAttribute('scale', '15');
+
+            setTimeout(() => {
+                updatePageContent();
+            }, 1500);
+
+            setTimeout(() => {
+                codexPage.classList.remove('turning-page');
+                chaosFactor = 1.5;
+                document.getElementById('turbulence').setAttribute('baseFrequency', '0.04');
+                document.getElementById('displacement').setAttribute('scale', '8');
+                isTurning = false;
+            }, 3000);
+        }
+
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Erro na câmera: ", err);
+            }
+        }
+
+        let ultimoIndice = -1;
+        function updatePageContent() {
+            let novoIndice;
+            do {
+                novoIndice = Math.floor(Math.random() * bibliotecaBorgiana.length);
+            } while (novoIndice === ultimoIndice && bibliotecaBorgiana.length > 1);
+            ultimoIndice = novoIndice;
+
+            const textoCompleto = bibliotecaBorgiana[novoIndice];
+            sandCharacters = textoCompleto.replace(/\s+/g, '').toUpperCase() + "مِنْهُأَنْيَكُونَ∞";
+
+            // Injeta o texto completo no grande bloco esquerdo com Letra Capitular (Drop Cap)
+            const primeiroCaractere = textoCompleto[0];
+            const restoTexto = textoCompleto.substring(1);
+
+            document.getElementById('content-text').innerHTML = `<span class="glyph-dropcap">${primeiroCaractere}</span>${restoTexto}`;
+
+            isImageLoaded = false;
+            webImage.src = `https://picsum.photos/${Math.floor(width)}/${Math.floor(height)}?random=${Date.now()}&grayscale`;
+            webImage.onload = () => {
+                isImageLoaded = true;
+            };
+        }
+
+        function renderSand() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                ctx.clearRect(0, 0, width, height);
+
+                if (isImageLoaded) {
+                    ctx.globalAlpha = 0.2;
+                    ctx.globalCompositeOperation = 'multiply';
+                    ctx.drawImage(webImage, 0, 0, width, height);
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.globalAlpha = 1.0;
+                }
+
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                tempCtx.translate(width, 0);
+                tempCtx.scale(-1, 1);
+                tempCtx.drawImage(video, 0, 0, width, height);
+
+                const imageData = tempCtx.getImageData(0, 0, width, height);
+                const pixels = imageData.data;
+
+                ctx.font = "14px Amiri";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+
+                timeOffset += 0.05;
+
+                for (let y = 0; y < height; y += step) {
+                    for (let x = 0; x < width; x += step) {
+                        const index = (y * width + x) * 4;
+                        const r = pixels[index];
+                        const g = pixels[index + 1];
+                        const b = pixels[index + 2];
+
+                        const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+
+                        if (brightness < 180) {
+                            const charIndex = Math.floor((x + y + timeOffset * 10) % sandCharacters.length);
+                            const character = sandCharacters[charIndex];
+
+                            const noiseX = Math.sin(y * 0.1 + timeOffset) * chaosFactor;
+                            const noiseY = Math.cos(x * 0.1 + timeOffset) * chaosFactor;
+
+                            const alpha = 1 - (brightness / 180);
+                            ctx.fillStyle = `rgba(30, 25, 15, ${alpha + 0.3})`;
+
+                            ctx.fillText(character, x + noiseX, y + noiseY);
+                        }
+                    }
+                }
+            }
+            requestAnimationFrame(renderSand);
+        }
+    </script>
+</body>
+
+</html>
